@@ -183,6 +183,11 @@ func TestNativeCoverRedirectAndBoundedDiskCache(t *testing.T) {
 func TestNativeCatalogCacheFreshnessPagingAndRefresh(t *testing.T) {
 	var calls atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/ai-") {
+			// 新模板分类页；本用例只验证旧 API 回退路径。
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if !strings.HasPrefix(r.URL.Path, "/api/videos/category/ai-") {
 			t.Error("test must only request synthetic catalog metadata", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)

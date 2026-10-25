@@ -35,6 +35,7 @@ type Config struct {
 	SoraniAPIURL     string
 	GuipianURL       string
 	HanxiaoquanURL   string
+	LanguoURL        string
 	Token            string
 	AESKeyHex        string
 	InterfaceKey     string
@@ -52,6 +53,8 @@ type Downloader struct {
 	huangdouDetailPending map[string]*huangdouDetailCall
 	providerMu            sync.Mutex
 	providerHosts         map[string]string
+	publishMu             sync.Mutex
+	publishCache          map[string]*providerPublishCache
 	limiter               *requestLimiter
 	proxyRouter           *proxyRouter
 	hongguoOnce           sync.Once
@@ -573,6 +576,17 @@ func (engine *nativeEngine) nativeCatalog(ctx context.Context, input nativeInput
 		result.HasMore = more
 		return result, nil
 	}
+	if query != "" && source == sourceLanguo {
+		items, more, err := d.fetchLanguoSearchPage(ctx, page, query)
+		if err != nil {
+			return result, err
+		}
+		for _, drama := range items {
+			result.Items = append(result.Items, nativeNormalize(drama))
+		}
+		result.HasMore = more
+		return result, nil
+	}
 	if query != "" && (source == sourceYeguo || source == sourceDSD) {
 		var items []Drama
 		var more bool
@@ -669,6 +683,8 @@ func (engine *nativeEngine) nativeCatalog(ctx context.Context, input nativeInput
 		items, result.HasMore, err = d.fetchGuipianCatalogPage(ctx, page, category, "")
 	case sourceHanxiaoquan:
 		items, result.HasMore, err = d.fetchHanxiaoquanCatalogPage(ctx, page, category, "")
+	case sourceLanguo:
+		items, result.HasMore, err = d.fetchLanguoCatalogPage(ctx, page, category)
 	case sourceHuangguoVideo:
 		address := fmt.Sprintf("%s/videos?page=%d", d.providerBaseURL(source), page)
 		if category != "" {
@@ -732,6 +748,8 @@ func (engine *nativeEngine) nativeDetail(ctx context.Context, drama nativeDrama)
 		raw, chapters, err = engine.downloader.fetchGuipianDetail(ctx, sourceID)
 	case sourceHanxiaoquan:
 		raw, chapters, err = engine.downloader.fetchHanxiaoquanDetail(ctx, sourceID)
+	case sourceLanguo:
+		raw, chapters, err = engine.downloader.fetchLanguoDetail(ctx, sourceID)
 	default:
 		title, chapters, err = engine.downloader.GetHuangguoChapters(ctx, source, sourceID)
 	}

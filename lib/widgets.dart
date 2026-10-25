@@ -261,6 +261,9 @@ class _CachedCoverImageState extends State<CachedCoverImage> {
   void _start() {
     final drama = widget.drama;
     final file = _CoverRequests.run(() => widget.repository.cover(drama));
+    // FutureBuilder 要等下一帧才订阅；先挂一个错误监听，避免海报请求失败时
+    // 错误在订阅前完成并被当作未捕获异常抛出。
+    unawaited(file.catchError((Object _) => ''));
     setState(() {
       _file = file;
     });

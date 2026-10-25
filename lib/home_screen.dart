@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -67,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _changedSources = <String>{};
   final _selectedDramas = <String, Drama>{};
   Timer? _cacheRefreshTimer;
+  Timer? _exitTimer;
+  bool _exitArmed = false;
   bool _refreshingUpdatedCache = false;
   bool _selectionMode = false;
   bool _showRecommendations = false;
@@ -419,6 +422,32 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (_search.text.isNotEmpty) {
       _search.clear();
       _searchChanged('');
+    } else if (!AppLayout.isTelevision(context)) {
+      Navigator.of(context).maybePop();
+    } else if (_exitArmed) {
+      _exitTimer?.cancel();
+      _exitArmed = false;
+      _exitApp();
+    } else {
+      _exitArmed = true;
+      _exitTimer?.cancel();
+      _exitTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _exitArmed = false);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('再按一次返回键退出应用'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _exitApp() {
+    if (Platform.isAndroid) {
+      unawaited(SystemNavigator.pop());
+    } else {
+      exit(0);
     }
   }
 
@@ -453,6 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _updater.dispose();
     _followUpdater.dispose();
     _cacheRefreshTimer?.cancel();
+    _exitTimer?.cancel();
     widget.store.removeListener(_sourcesChanged);
     widget.repository.catalogUpdates.removeListener(_metadataChanged);
     _generation++;
@@ -1143,9 +1173,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         if (!television && !_selectionMode) return scaffold;
         return PopScope(
-          canPop:
-              !_selectionMode &&
-              (!television || _tab == 0 && _search.text.isEmpty),
+          canPop: !_selectionMode && !television,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop) _televisionBack();
           },

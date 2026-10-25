@@ -45,6 +45,8 @@ func (d *Downloader) providerBaseURL(source string) string {
 		configured, fallback = d.cfg.GuipianURL, guipianSiteBaseURL
 	case sourceHanxiaoquan:
 		configured, fallback = d.cfg.HanxiaoquanURL, hanxiaoquanSiteBaseURL
+	case sourceLanguo:
+		configured, fallback = d.cfg.LanguoURL, languoBaseURL
 	default:
 		fallback = "https://d2pypzndaqisk.cloudfront.net"
 	}
@@ -57,8 +59,12 @@ func providerSourceForURL(raw string) string {
 		return ""
 	}
 	host := strings.ToLower(parsed.Hostname())
+	if source := publishedProviderHostSource(host); source != "" {
+		return source
+	}
 	switch {
-	case host == "huangguoai.com" || strings.HasSuffix(host, ".ediayikma.cc") || strings.HasSuffix(host, ".agdkczeyx.cc"):
+	case host == "huangguoai.com" || strings.HasSuffix(host, ".ediayikma.cc") || strings.HasSuffix(host, ".agdkczeyx.cc") ||
+		strings.HasSuffix(host, ".h2na6qa39.cc") || strings.HasSuffix(host, ".ggood01z.cc") || strings.HasSuffix(host, ".ir95e08v.cc"):
 		return sourceHuangguoAI
 	case host == "huangguo.video":
 		return sourceHuangguoVideo
@@ -81,6 +87,9 @@ func providerSourceForURL(raw string) string {
 		return sourceGuipian
 	case host == "jennyhow.com" || host == "www.jennyhow.com":
 		return sourceHanxiaoquan
+	case host == "languo.ai" || host == "www.languo.ai" || host == "languo.me" || host == "www.languo.me" ||
+		strings.HasSuffix(host, ".languo.ai") || strings.HasSuffix(host, ".languo.me") || strings.HasSuffix(host, ".y0bsjd8v.cc"):
+		return sourceLanguo
 	default:
 		return ""
 	}
@@ -104,13 +113,32 @@ func (d *Downloader) providerURLCandidates(raw string) []string {
 		}
 	}
 	add(rehostProviderURL(parsed, preferred))
+	for _, mirror := range d.providerPublishedHosts(source) {
+		add(rehostProviderURL(parsed, mirror))
+	}
 	configured := d.providerBaseURL(source)
 	add(rehostProviderURL(parsed, configured))
 	if providerSourceForURL(configured) == "" {
+		if len(candidates) == 0 {
+			return []string{raw}
+		}
 		return candidates
 	}
-	for _, candidate := range providerURLCandidates(raw) {
-		add(candidate)
+	switch source {
+	case sourceHuangguoAI:
+		for _, mirror := range huangguoAIBaseMirrors {
+			add(rehostProviderURL(parsed, mirror))
+		}
+		for _, mirror := range generatedHuangguoAIMirrors(raw, 8) {
+			add(rehostProviderURL(parsed, mirror))
+		}
+	case sourceLanguo:
+		for _, mirror := range languoBaseMirrors {
+			add(rehostProviderURL(parsed, mirror))
+		}
+	}
+	if len(candidates) == 0 {
+		return []string{raw}
 	}
 	return candidates
 }
@@ -145,7 +173,7 @@ func (d *Downloader) resolveProviderMedia(ctx context.Context, task Task) (provi
 	if strings.HasPrefix(chapter.VideoURL, "hongguo-cenc://") {
 		return d.resolveHongguoMedia(ctx, task)
 	}
-	if chapter.PageURL == "" && (chapter.Source == sourceHuangguoAI || chapter.Source == sourceHuangguoVideo) {
+	if chapter.PageURL == "" && (chapter.Source == sourceHuangguoAI || chapter.Source == sourceHuangguoVideo || chapter.Source == sourceLanguo) {
 		if source, sourceID, valid := splitProviderDramaID(task.DramaID); valid {
 			_, chapters, err := d.GetHuangguoChapters(ctx, source, sourceID)
 			if err != nil {
@@ -180,7 +208,7 @@ func (d *Downloader) resolveProviderMedia(ctx context.Context, task Task) (provi
 			media.Referer = client.host + "/home"
 		}
 	}
-	if chapter.PageURL != "" && (chapter.Source == sourceHuangguoAI || chapter.Source == sourceHuangguoVideo) {
+	if chapter.PageURL != "" && (chapter.Source == sourceHuangguoAI || chapter.Source == sourceHuangguoVideo || chapter.Source == sourceLanguo) {
 		responses := &playbackResponseURLs{}
 		pageContext := context.WithValue(ctx, playbackResponseURLsKey{}, responses)
 		body, err := d.fetchProviderText(pageContext, chapter.PageURL, media.Referer)
@@ -191,7 +219,7 @@ func (d *Downloader) resolveProviderMedia(ctx context.Context, task Task) (provi
 		if actual, ok := responses.values.Load(chapter.PageURL); ok {
 			pageURL = actual.(string)
 		}
-		if chapter.Source == sourceHuangguoAI {
+		if chapter.Source == sourceHuangguoAI || chapter.Source == sourceLanguo {
 			media.URL = parseAIVideoURL(body, pageURL)
 		} else {
 			media.URL = parseDataHLS(body, pageURL)

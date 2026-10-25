@@ -69,6 +69,8 @@ func validNativeCategory(source, category string) bool {
 		return validGuipianCategory(category)
 	case sourceHanxiaoquan:
 		return validHanxiaoquanCategory(category)
+	case sourceLanguo:
+		return validLanguoCategory(category)
 	}
 	return false
 }
@@ -84,6 +86,8 @@ func (engine *nativeEngine) nativeCategories(ctx context.Context, source string,
 		return all, nil
 	case sourceHuangguoAI:
 		return append(all, nativeAICategories...), nil
+	case sourceLanguo:
+		return append(all, languoCategories...), nil
 	case sourceHuangdou:
 		return all, nil
 	}
@@ -189,6 +193,7 @@ func (d *Downloader) fetchHuangguoAICatalogPage(ctx context.Context, page int, c
 	}
 	type categoryResult struct {
 		items []Drama
+		more  bool
 		err   error
 	}
 	results := make([]categoryResult, len(categories))
@@ -205,10 +210,21 @@ func (d *Downloader) fetchHuangguoAICatalogPage(ctx context.Context, page int, c
 				results[index].err = ctx.Err()
 				return
 			}
-			address := fmt.Sprintf("%s/api/videos/category/%s?sort=hot&page=%d&size=24", d.providerBaseURL(sourceHuangguoAI), url.PathEscape(entry.ID), page)
-			body, err := d.fetchProviderText(ctx, address, d.providerBaseURL(sourceHuangguoAI)+"/"+entry.ID+"/")
+			base := d.providerBaseURL(sourceHuangguoAI)
+			htmlAddress := huangguoAIHTMLAddress(base, entry.ID, page)
+			if body, err := d.fetchProviderText(ctx, htmlAddress, base+"/"); err == nil {
+				items := parseHuangguoAIDramaCards(huangguoAIChannelPanelHTML(body), htmlAddress, entry.Name)
+				if len(items) > 0 {
+					results[index].items = items
+					results[index].more = huangguoAIHasNextPage(body)
+					return
+				}
+			}
+			address := fmt.Sprintf("%s/api/videos/category/%s?sort=hot&page=%d&size=24", base, url.PathEscape(entry.ID), page)
+			body, err := d.fetchProviderText(ctx, address, base+"/"+entry.ID+"/")
 			if err == nil {
 				results[index].items = parseHuangguoAIJSONCards([]byte(body), address, entry.Name)
+				results[index].more = len(results[index].items) >= 24
 			}
 			if err != nil {
 				results[index].err = fmt.Errorf("%s: %w", entry.Name, err)
@@ -221,10 +237,39 @@ func (d *Downloader) fetchHuangguoAICatalogPage(ctx context.Context, page int, c
 	more := false
 	for _, result := range results {
 		items = append(items, result.items...)
-		more = more || len(result.items) >= 24 || result.err != nil
+		more = more || result.more || result.err != nil
 		if result.err != nil {
 			failures = append(failures, result.err)
 		}
 	}
 	return items, more, errors.Join(failures...)
+}
+
+func huangguoAIHTMLAddress(base, category string, page int) string {
+	path := "/" + strings.Trim(strings.TrimSpace(category), "/") + "/"
+	if page > 1 {
+		path = strings.TrimRight(path, "/") + "/" + strconv.Itoa(page) + "/"
+	}
+	return strings.TrimRight(base, "/") + path
+}
+
+func huangguoAIChannelPanelHTML(body string) string {
+	start := strings.Index(body, `data-channel-panel="latest"`)
+	if start < 0 {
+		start = strings.Index(body, `data-channel-panel='latest'`)
+	}
+	if start < 0 {
+		return body
+	}
+	end := strings.Index(body[start+1:], "hg-card-grid")
+	if end < 0 {
+		return body[start:]
+	}
+	return body[start : start+1+end]
+}
+
+var reHuangguoNextPage = regexp.MustCompile(`(?is)<a\b[^>]*(?:rel=["']next["']|aria-label=["']下一页["'])[^>]*>`)
+
+func huangguoAIHasNextPage(body string) bool {
+	return reHuangguoNextPage.MatchString(body)
 }

@@ -211,6 +211,8 @@ class DuanjuApp extends StatelessWidget {
   final String version;
   final GlobalKey<NavigatorState>? navigatorKey;
 
+  void _back() => navigatorKey?.currentState?.maybePop();
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([store]),
@@ -257,9 +259,24 @@ class DuanjuApp extends StatelessWidget {
                       LogicalKeyboardKey.gameButtonA,
                       includeRepeats: false,
                     ): ActivateIntent(),
-                    SingleActivator(LogicalKeyboardKey.goBack): DismissIntent(),
                   },
-                  child: FocusTraversalGroup(child: child!),
+                  child: CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(
+                        LogicalKeyboardKey.goBack,
+                        includeRepeats: false,
+                      ): _back,
+                      const SingleActivator(
+                        LogicalKeyboardKey.browserBack,
+                        includeRepeats: false,
+                      ): _back,
+                      const SingleActivator(
+                        LogicalKeyboardKey.escape,
+                        includeRepeats: false,
+                      ): _back,
+                    },
+                    child: FocusTraversalGroup(child: child!),
+                  ),
                 ),
               ),
             ),
