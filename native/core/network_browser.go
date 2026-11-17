@@ -63,6 +63,18 @@ func (transport *huangguoBrowserTransport) source(address *url.URL) string {
 				return descriptor.ID
 			}
 		}
+		for _, suffix := range descriptor.HostSuffixes {
+			suffix = strings.ToLower(strings.TrimSpace(suffix))
+			if suffix == "" {
+				continue
+			}
+			if !strings.HasPrefix(suffix, ".") {
+				suffix = "." + suffix
+			}
+			if strings.HasSuffix(hostname, suffix) {
+				return descriptor.ID
+			}
+		}
 	}
 	return ""
 }

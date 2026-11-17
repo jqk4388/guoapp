@@ -18,6 +18,7 @@ import 'picture_in_picture.dart';
 import 'portable_data.dart';
 import 'ui/app.dart';
 import 'ui/theme/app_theme.dart';
+import 'web_verify.dart';
 import 'window_frame.dart';
 import 'window_on_top.dart';
 import 'windows_data_migration.dart';
@@ -140,12 +141,14 @@ class _AppBootstrapState extends State<AppBootstrap>
   }
 
   @override
-  Widget build(BuildContext context) => DuanjuApp(
-    repository: repository,
-    store: store,
-    bootstrapError: error?.toString(),
-    onRetry: _initialize,
-    television: device.television,
-    version: device.version,
+  Widget build(BuildContext context) => WebVerifyHost(
+    child: DuanjuApp(
+      repository: repository,
+      store: store,
+      bootstrapError: error?.toString(),
+      onRetry: _initialize,
+      television: device.television,
+      version: device.version,
+    ),
   );
 }
