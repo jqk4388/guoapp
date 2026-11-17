@@ -234,8 +234,8 @@ class WebVerifyHostState extends State<WebVerifyHost> {
     onCreateWindow: (controller, action) async => false,
     onLoadStop: (controller, url) => _handleStop(controller, url),
     onReceivedError: (controller, request, error) {
-      if (!request.isForMainFrame || _job == null) return;
-      final host = request.url?.host ?? '';
+      if (request.isForMainFrame != true || _job == null) return;
+      final host = request.url.host;
       if (host.isEmpty || WebVerify.isBlockedHost(host)) return;
       _complete('', '验证页面加载失败：${error.description}');
     },
@@ -243,7 +243,7 @@ class WebVerifyHostState extends State<WebVerifyHost> {
 
   @override
   Widget build(BuildContext context) {
-    if (_view == null) _view = _buildView();
+    _view ??= _buildView();
     return Stack(
       alignment: Alignment.topLeft,
       children: [

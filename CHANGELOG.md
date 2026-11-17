@@ -4,6 +4,8 @@
 
 ## 2.0.3+115
 
+- 新增后台播放：离开应用、锁屏或最小化时继续播放，接入系统媒体控件（Android 通知栏与锁屏、iOS/macOS 正在播放、Windows SMTC），老板键隐藏时仍暂停。
+- Windows 和 macOS 新增老板键，在设置里录制快捷键，全局按下隐藏或恢复窗口，隐藏时暂停播放（#180）。
 - 新增隐藏浏览器（flutter_inappwebview），播放前自动走完带 Cloudflare 挑战的广告短链：站源把分集地址写成 `browser://<短链>`，应用用隐藏 WebView 提交页面表单拿到落地地址，再交给站源解析直链（开发快照，需四平台实机验证）。
 - 请求指纹通道支持清单里的 `hostSuffixes`，媒体放在子域名上的站源也能走 Chrome 指纹通道（开发快照）。
 - 新增站源模块（另仓库发布）：JavBoys、GayPornHot、Netfuck（WordPress + 嵌入站，走 Chrome 指纹），4horLover（播放前需浏览器验证，MixDrop 直链）。
