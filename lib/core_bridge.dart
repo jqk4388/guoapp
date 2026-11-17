@@ -630,7 +630,7 @@ class NativeRepository extends AppRepository {
       'action': 'sourceAccount',
       'source': source,
       'command': command,
-      if (payload != null) 'account': payload,
+      'account': ?payload,
     });
   }
 
