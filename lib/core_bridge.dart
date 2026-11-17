@@ -189,6 +189,11 @@ abstract class AppRepository {
   Future<void> reportUsage(String version) async {}
   Future<bool> sourceDevices(String source, {bool register = false}) async =>
       true;
+  Future<Map<String, dynamic>> sourceAccount(
+    String source,
+    String command, {
+    Map<String, dynamic>? payload,
+  }) async => const <String, dynamic>{};
   Future<SoraniAccount> soraniAccount() async => const SoraniAccount();
   Future<SoraniCaptcha> soraniCaptcha() async =>
       throw AppFailure('当前版本不支持登录青空次元');
@@ -606,6 +611,27 @@ class NativeRepository extends AppRepository {
     if (access != null && (access!.locked || !access!.profile.admin)) {
       throw AppFailure('仅管理员可登录或退出青空次元账号');
     }
+  }
+
+  void _sourceAccountPermission() {
+    if (access != null && (access!.locked || !access!.profile.admin)) {
+      throw AppFailure('仅管理员可登录或退出站源账号');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> sourceAccount(
+    String source,
+    String command, {
+    Map<String, dynamic>? payload,
+  }) async {
+    _sourceAccountPermission();
+    return _call({
+      'action': 'sourceAccount',
+      'source': source,
+      'command': command,
+      if (payload != null) 'account': payload,
+    });
   }
 
   @override

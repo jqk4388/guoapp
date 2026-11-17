@@ -14,6 +14,7 @@ import '../app_scope.dart';
 import '../settings/settings_rows.dart';
 import 'module_install.dart';
 import '../settings/sorani_account_view.dart';
+import '../settings/source_account_view.dart';
 import '../widgets/bar_button.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/form_text_field.dart';
@@ -839,7 +840,14 @@ class _InstalledCard extends StatelessWidget {
       onTap: onDetails,
       leading: [
         if (!television && module.id == 'sorani' && soraniAccountAvailable())
-          SoraniAccountButton(admin: admin, style: _cardButton(colors)),
+          SoraniAccountButton(admin: admin, style: _cardButton(colors))
+        else if (!television && module.capabilities.contains('account'))
+          SourceAccountButton(
+            source: module.id,
+            name: module.name,
+            admin: admin,
+            style: _cardButton(colors),
+          ),
       ],
       actions: television
           ? const []
@@ -1245,7 +1253,13 @@ class _ModuleMenu extends StatelessWidget {
       ),
       actions: [
         if (module.id == 'sorani' && soraniAccountAvailable())
-          SoraniAccountButton(admin: admin),
+          SoraniAccountButton(admin: admin)
+        else if (module.capabilities.contains('account'))
+          SourceAccountButton(
+            source: module.id,
+            name: module.name,
+            admin: admin,
+          ),
         if (update != null)
           FocusRing(
             radius: 20,
