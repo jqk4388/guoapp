@@ -73,6 +73,7 @@ type ModuleManifest struct {
 	KeepDetailEpisodes bool     `json:"keepDetailEpisodes"`
 	ContinuousFeed     bool     `json:"continuousFeed"`
 	BrowserFingerprint bool     `json:"browserFingerprint"`
+	AllowAnyHost       bool     `json:"allowAnyHost"`
 
 	Rankings       []ModuleRanking `json:"rankings"`
 	MediaAuthPaths []string        `json:"mediaAuthPaths"`
@@ -184,6 +185,7 @@ func (module *jsModule) descriptor() SourceDescriptor {
 		SkipVIPPrompt:      module.manifest.SkipVIPPrompt,
 		Aliases:            module.manifest.Aliases,
 		HostSuffixes:       module.manifest.HostSuffixes,
+		Hosts:              module.manifest.Hosts,
 		BaseURL:            module.manifest.BaseURL,
 		NoHostRotation:     module.manifest.NoHostRotation,
 		KeepDetailEpisodes: module.manifest.KeepDetailEpisodes,

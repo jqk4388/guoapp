@@ -75,8 +75,30 @@ func (transport *huangguoBrowserTransport) source(address *url.URL) string {
 				return descriptor.ID
 			}
 		}
+		if hostDeclared(descriptor.Hosts, host, hostname) {
+			return descriptor.ID
+		}
 	}
 	return ""
+}
+
+func hostDeclared(patterns []string, host, hostname string) bool {
+	for _, pattern := range patterns {
+		pattern = strings.ToLower(strings.TrimSpace(pattern))
+		if pattern == "" {
+			continue
+		}
+		if suffix, wildcard := strings.CutPrefix(pattern, "*"); wildcard && strings.HasPrefix(suffix, ".") {
+			if strings.HasSuffix(hostname, suffix) {
+				return true
+			}
+			continue
+		}
+		if pattern == host || pattern == hostname {
+			return true
+		}
+	}
+	return false
 }
 
 func (transport *huangguoBrowserTransport) createClient(proxy string) (browserHTTPClient, error) {

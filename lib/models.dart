@@ -134,6 +134,7 @@ class Drama {
     this.tags = const [],
     this.releaseStatus = '',
     this.badge = '',
+    this.sourceUrl = '',
   }) : vipStatus = vip;
   final String id;
   final String source;
@@ -152,6 +153,7 @@ class Drama {
   final List<String> tags;
   final String releaseStatus;
   final String badge;
+  final String sourceUrl;
   String get releaseLabel => switch (releaseStatus) {
     'finished' || 'completed' => '已完结',
     'ongoing' => '连载中',
@@ -181,6 +183,7 @@ class Drama {
     tags: (json['tags'] as List? ?? const []).whereType<String>().toList(),
     releaseStatus: json['releaseStatus'] as String? ?? '',
     badge: json['badge'] as String? ?? '',
+    sourceUrl: json['sourceUrl'] as String? ?? '',
   );
   Map<String, dynamic> toJson() => {
     'metadataSchema': 1,
@@ -200,6 +203,7 @@ class Drama {
     'tags': tags,
     'releaseStatus': releaseStatus,
     'badge': badge,
+    'sourceUrl': sourceUrl,
   };
 
   Drama merge(Drama fresh) {
@@ -241,6 +245,7 @@ class Drama {
           ? releaseStatus
           : fresh.releaseStatus,
       badge: fresh.badge.isEmpty ? badge : fresh.badge,
+      sourceUrl: fresh.sourceUrl.isEmpty ? sourceUrl : fresh.sourceUrl,
     );
   }
 }

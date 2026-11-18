@@ -604,23 +604,42 @@ class _DetailPageState extends State<DetailPage> {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-            child: Row(
-              spacing: 12,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (_canDownload)
-                  FocusRing(
-                    radius: m.button / 2,
-                    child: IconButton.filledTonal(
-                      tooltip: '下载选集',
-                      onPressed: _ready ? _download : null,
-                      style: IconButton.styleFrom(
-                        minimumSize: Size.square(m.button),
+                Row(
+                  spacing: 12,
+                  children: [
+                    if (_canDownload)
+                      FocusRing(
+                        radius: m.button / 2,
+                        child: IconButton.filledTonal(
+                          tooltip: '下载选集',
+                          onPressed: _ready ? _download : null,
+                          style: IconButton.styleFrom(
+                            minimumSize: Size.square(m.button),
+                          ),
+                          icon: const Icon(Icons.download_rounded),
+                        ),
                       ),
-                      icon: const Icon(Icons.download_rounded),
+                    Expanded(child: _playButton(details, m)),
+                  ],
+                ),
+                if (details.drama.sourceUrl.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: m.button - 6,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('detail-copy-link'),
+                        onPressed: () => _copyLink(details),
+                        icon: const Icon(Icons.link_rounded, size: 18),
+                        label: const Text('复制链接'),
+                      ),
                     ),
                   ),
-                Expanded(child: _playButton(details, m)),
               ],
             ),
           ),
@@ -1099,8 +1118,17 @@ class _DetailPageState extends State<DetailPage> {
     ),
   );
 
-  Widget _episodeStatus(DramaDetails details, {bool autofocus = false}) =>
-      FadeSwitcher(
+  Future<void> _copyLink(DramaDetails details) async {
+    final link = details.drama.sourceUrl.trim();
+    if (link.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('链接已复制'), duration: Duration(seconds: 2)),
+    );
+  }
+
+  Widget _episodeStatus(DramaDetails details, {bool autofocus = false}) =>      FadeSwitcher(
         child: details.loading
             ? const StatusView.loading(key: ValueKey('loading'))
             : _episodeError(details, autofocus),

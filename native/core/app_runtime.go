@@ -62,6 +62,7 @@ type LibraryDrama struct {
 	Tags           []string `json:"tags,omitempty"`
 	ReleaseStatus  string   `json:"releaseStatus,omitempty"`
 	Badge          string   `json:"badge,omitempty"`
+	SourceURL      string   `json:"sourceUrl,omitempty"`
 }
 
 type nativeInput struct {
@@ -211,7 +212,8 @@ func NativeNormalize(drama Drama) LibraryDrama {
 		Description: FirstNonEmpty(drama.Desc, drama.Intro), Cover: cover, Episodes: episodes,
 		Category: nativeDramaCategory(drama), VIP: drama.VIP,
 		Heat: drama.Heat, Views: drama.Views, OnlineDate: ProviderReleaseDate(drama.OnlineDate), Score: NativeDramaScore(drama.Score),
-		Tags: append([]string(nil), drama.Tags...), ReleaseStatus: drama.ReleaseStatus, Badge: drama.Badge}
+		Tags: append([]string(nil), drama.Tags...), ReleaseStatus: drama.ReleaseStatus, Badge: drama.Badge,
+		SourceURL: strings.TrimSpace(drama.SourceURL)}
 }
 
 func NativeDramaScore(score string) string {

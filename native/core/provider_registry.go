@@ -23,6 +23,7 @@ type SourceDescriptor struct {
 	SkipVIPPrompt      bool
 	Aliases            []string
 	HostSuffixes       []string
+	Hosts              []string
 	MatchesHost        func(host string) bool
 	BaseURL            string
 	AllowEmptyCatalog  bool

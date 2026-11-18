@@ -87,6 +87,7 @@ class PlaybackLoader {
   Future<void> close() async {
     _closed = true;
     _generation++;
+    WebVerify.instance.cancel();
     await repository.cancelPlayback();
   }
 }

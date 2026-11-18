@@ -226,6 +226,9 @@ func MergeNativeDrama(previous, fresh LibraryDrama) LibraryDrama {
 	if fresh.Episodes == 0 {
 		fresh.Episodes = previous.Episodes
 	}
+	if fresh.SourceURL == "" {
+		fresh.SourceURL = previous.SourceURL
+	}
 	if fresh.VIP == nil {
 		fresh.VIP = previous.VIP
 	}

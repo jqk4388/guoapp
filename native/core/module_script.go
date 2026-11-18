@@ -470,10 +470,10 @@ func (p *jsProvider) allowedAddress(raw string) error {
 	if err != nil || address.Scheme != "https" && address.Scheme != "http" || address.Hostname() == "" {
 		return errors.New("请求地址无效")
 	}
-	if !p.module.allowsHost(address.Hostname()) {
-		return fmt.Errorf("模块清单未声明访问 %s", address.Hostname())
+	if p.module.manifest.AllowAnyHost || p.module.allowsHost(address.Hostname()) {
+		return nil
 	}
-	return nil
+	return fmt.Errorf("模块清单未声明访问 %s", address.Hostname())
 }
 
 func (p *jsProvider) fetchPlaylist(ctx context.Context, request jsPlaylistRequest) (jsPlaylist, error) {
