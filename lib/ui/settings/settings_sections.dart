@@ -500,9 +500,29 @@ class SettingsSection extends StatelessWidget {
               enabled: editable,
               onTap: () => _editProxy(context, settings),
             ),
+          if (settings != null)
+            SettingsTile(
+              title: '模块源访问令牌',
+              subtitle: '私有模块仓库（GitHub）读取索引和安装包要用；公开仓库留空即可，仅保存在本机、不进入配置备份',
+              value: settings.moduleToken.isEmpty ? '未设置' : '已设置',
+              enabled: editable,
+              onTap: () => _editModuleToken(context, settings),
+            ),
         ],
       ),
     ];
+  }
+
+  Future<void> _editModuleToken(
+    BuildContext context,
+    ResourceSettings settings,
+  ) async {
+    final token = await showDialog<String>(
+      context: context,
+      builder: (_) => _ModuleTokenDialog(initial: settings.moduleToken),
+    );
+    if (token == null || !context.mounted) return;
+    await _saveResource(context, settings.copyWith(moduleToken: token));
   }
 
   Future<void> _editProxy(
@@ -746,10 +766,60 @@ class _Note extends StatelessWidget {
   );
 }
 
+class _ModuleTokenDialog extends StatefulWidget {
+  const _ModuleTokenDialog({required this.initial});
+  final String initial;
+
+  @override
+  State<_ModuleTokenDialog> createState() => _ModuleTokenDialogState();
+}
+
+class _ModuleTokenDialogState extends State<_ModuleTokenDialog> {
+  late final _token = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _token.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('模块源访问令牌'),
+    content: SizedBox(
+      width: 420,
+      child: FormTextField(
+        controller: _token,
+        autofocus: true,
+        onSubmitted: (_) => Navigator.pop(context, _token.text.trim()),
+        decoration: const InputDecoration(
+          hintText: 'github_pat_...',
+          helperText: '留空表示不需要令牌；只用于读取私有模块仓库',
+        ),
+      ),
+    ),
+    actions: [
+      FocusRing(
+        radius: 20,
+        child: TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+      ),
+      FocusRing(
+        radius: 20,
+        child: FilledButton(
+          onPressed: () => Navigator.pop(context, _token.text.trim()),
+          child: const Text('保存'),
+        ),
+      ),
+    ],
+  );
+}
+
 class _ProxyDialog extends StatefulWidget {
   const _ProxyDialog({required this.initial});
   final String initial;
-
   @override
   State<_ProxyDialog> createState() => _ProxyDialogState();
 }

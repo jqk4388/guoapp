@@ -366,33 +366,46 @@ class _ModulesPageState extends State<ModulesPage>
 
   Widget _catalogTab({required bool bundled}) {
     final enabled = _canInstall;
-    final installed = {for (final module in _modules ?? const []) module.id};
+    final installed = {
+      for (final module in _modules ?? const <SourceModule>[])
+        module.id: module,
+    };
     final missing = _missingSources(_store, _repository);
     final warning = bundled ? '' : _index?.warning ?? '';
     final listed = [
       for (final entry in _index?.entries ?? const <ModuleIndexEntry>[])
         if (entry.bundled == bundled) entry,
     ];
-    final entries =
-        [
-          for (final entry in listed)
-            if (!installed.contains(entry.id)) entry,
-        ]..sort(
-          (a, b) => (missing.containsKey(a.id) ? 0 : 1).compareTo(
-            missing.containsKey(b.id) ? 0 : 1,
-          ),
-        );
+    bool updatable(ModuleIndexEntry entry) {
+      final module = installed[entry.id];
+      return module != null &&
+          module.error.isEmpty &&
+          isNewerModuleVersion(entry.version, module.version);
+    }
+
+    int rank(ModuleIndexEntry entry) => missing.containsKey(entry.id)
+        ? 0
+        : updatable(entry)
+        ? 1
+        : installed.containsKey(entry.id)
+        ? 3
+        : 2;
+    final entries = [...listed]..sort((a, b) => rank(a).compareTo(rank(b)));
+    final pending = [
+      for (final entry in entries)
+        if (!installed.containsKey(entry.id)) entry,
+    ];
     return _list([
       if (warning.isNotEmpty) _Note(warning),
-      if (!bundled && entries.isNotEmpty)
+      if (!bundled && pending.isNotEmpty)
         SettingsCard(
           children: [
             SettingsTile(
               icon: Icons.download_rounded,
               title: '安装全部站源',
-              subtitle: '在线仓库里还有 ${entries.length} 个未安装',
+              subtitle: '在线仓库里还有 ${pending.length} 个未安装',
               enabled: enabled,
-              onTap: enabled ? () => _installAll(entries) : null,
+              onTap: enabled ? () => _installAll(pending) : null,
             ),
           ],
         ),
@@ -402,13 +415,13 @@ class _ModulesPageState extends State<ModulesPage>
         const _Loading()
       else if (listed.isEmpty && warning.isEmpty)
         _Note(bundled ? '这个安装包没有内置模块。' : '仓库里还没有模块。')
-      else if (entries.isEmpty && listed.isNotEmpty)
-        _Note(bundled ? '内置模块都已安装。' : '仓库里的模块都已安装。')
       else
         for (final entry in entries)
           _IndexCard(
             entry: entry,
             records: missing[entry.id],
+            installedVersion: installed[entry.id]?.version,
+            updatable: updatable(entry),
             onInstall: enabled ? () => _installIndexed(entry) : null,
           ),
     ]);
@@ -891,15 +904,20 @@ class _IndexCard extends StatelessWidget {
   const _IndexCard({
     required this.entry,
     required this.records,
+    required this.installedVersion,
+    required this.updatable,
     required this.onInstall,
   });
   final ModuleIndexEntry entry;
   final String? records;
+  final String? installedVersion;
+  final bool updatable;
   final VoidCallback? onInstall;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final installed = installedVersion != null;
     return _ModuleCard(
       name: entry.name,
       adult: entry.adult,
@@ -907,6 +925,13 @@ class _IndexCard extends StatelessWidget {
       id: entry.id,
       body: [
         if (entry.description.isNotEmpty) Text(entry.description),
+        if (installed)
+          Text(
+            updatable
+                ? '已安装 $installedVersion，可更新到 ${entry.version}'
+                : '已安装 $installedVersion',
+            style: TextStyle(color: colors.primary),
+          ),
         if (records != null)
           Text('待恢复：$records', style: TextStyle(color: colors.primary)),
       ],
@@ -914,9 +939,21 @@ class _IndexCard extends StatelessWidget {
         radius: 20,
         child: FilledButton.tonalIcon(
           style: _cardButton(colors, primary: true),
-          onPressed: onInstall,
-          icon: const Icon(Icons.download_rounded),
-          label: const Text('安装'),
+          onPressed: installed && !updatable ? null : onInstall,
+          icon: Icon(
+            updatable
+                ? Icons.upgrade_rounded
+                : installed
+                ? Icons.check_rounded
+                : Icons.download_rounded,
+          ),
+          label: Text(
+            updatable
+                ? '更新'
+                : installed
+                ? '已安装'
+                : '安装',
+          ),
         ),
       ),
     );

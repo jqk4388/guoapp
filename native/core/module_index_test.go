@@ -15,6 +15,19 @@ import (
 	"testing/fstest"
 )
 
+func TestModuleIndexTagAcceptsModuleScopedTags(t *testing.T) {
+	for _, tag := range []string{"v1.0.0", "huangdou-v0.1.3", "fullboys-v0.1.0"} {
+		if !moduleIndexTag.MatchString(tag) {
+			t.Errorf("moduleIndexTag 不接受 %q", tag)
+		}
+	}
+	for _, tag := range []string{"v1.0", "huangdou-0.1.3", "release-1", "../x", "huangdou-v1.0.0-x"} {
+		if moduleIndexTag.MatchString(tag) {
+			t.Errorf("moduleIndexTag 误接受 %q", tag)
+		}
+	}
+}
+
 func TestModuleIndexInstallFallsBackAndVerifies(t *testing.T) {
 	example := filepath.Join("..", "module_example", "jsexample")
 	files := map[string][]byte{}
@@ -59,21 +72,29 @@ func TestModuleIndexInstallFallsBackAndVerifies(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	addresses, patterns := moduleIndexAddresses, moduleFileAddresses
+	community := moduleIndexCommunityAddresses
+	repos := moduleIndexRepos
 	moduleIndexAddresses = []string{server.URL + "/broken/index.json", server.URL + "/index.json"}
-	moduleFileAddresses = []string{server.URL + "/stale/%s/%s/%s", server.URL + "/files/%s/%s/%s"}
-	t.Cleanup(func() { moduleIndexAddresses, moduleFileAddresses = addresses, patterns })
+	moduleFileAddresses = []string{server.URL + "/files/%s/%s/%s", server.URL + "/stale/%s/%s/%s"}
+	moduleIndexCommunityAddresses = nil
+	moduleIndexRepos = nil
+	t.Cleanup(func() {
+		moduleIndexAddresses, moduleFileAddresses = addresses, patterns
+		moduleIndexCommunityAddresses = community
+		moduleIndexRepos = repos
+	})
 
 	engine := &nativeEngine{downloader: &Downloader{cfg: Config{dataDir: t.TempDir()}, client: server.Client()}, cacheDirectory: t.TempDir()}
 	ctx := context.Background()
-	entries, mirror, err := engine.moduleIndex(ctx)
-	if err != nil || mirror != 1 || len(entries) != 3 || entries[0].ID != "jsexample" || entries[1].ID != "renamed" || entries[2].ID != "tampered" {
+	entries, err := engine.moduleIndex(ctx)
+	if err != nil || len(entries) != 3 || entries[0].ID != "jsexample" || entries[1].ID != "renamed" || entries[2].ID != "tampered" {
 		t.Fatalf("index = %+v, %v", entries, err)
 	}
 	info, err := engine.prepareModule(ctx, "", "", "jsexample", false)
 	if err != nil || info.ID != "jsexample" || info.Token == "" || staleHits.Load() != 0 {
 		t.Fatalf("prepare = %+v, %v, stale hits %d", info, err, staleHits.Load())
 	}
-	moduleFileAddresses = []string{server.URL + "/files/%s/%s/%s", server.URL + "/stale/%s/%s/%s"}
+	moduleFileAddresses = []string{server.URL + "/stale/%s/%s/%s", server.URL + "/files/%s/%s/%s"}
 	if info, err := engine.prepareModule(ctx, "", "", "jsexample", false); err != nil || info.ID != "jsexample" || staleHits.Load() != 2 {
 		t.Fatalf("fallback prepare = %+v, %v, stale hits %d", info, err, staleHits.Load())
 	}

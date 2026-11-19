@@ -16,6 +16,7 @@ import (
 type nativeResourceSettings struct {
 	ProxyMode           string `json:"proxyMode"`
 	ProxyURL            string `json:"proxyUrl"`
+	ModuleToken         string `json:"moduleToken"`
 	CatalogConcurrency  int    `json:"catalogConcurrency"`
 	DownloadConcurrency int    `json:"downloadConcurrency"`
 	DownloadBySource    bool   `json:"downloadBySource"`
@@ -50,6 +51,11 @@ func (settings nativeResourceSettings) validate() error {
 			if err != nil || number < 1 || number > 65535 {
 				return errors.New("代理端口无效")
 			}
+		}
+	}
+	if token := strings.TrimSpace(settings.ModuleToken); token != "" {
+		if len(token) > 512 || strings.ContainsAny(token, " \t\r\n") {
+			return errors.New("模块源访问令牌无效")
 		}
 	}
 	return nil

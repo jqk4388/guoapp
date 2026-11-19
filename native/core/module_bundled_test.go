@@ -39,8 +39,16 @@ func TestBundledModulesInstallRespectRemovalAndVersions(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	addresses := moduleIndexAddresses
+	community := moduleIndexCommunityAddresses
+	repos := moduleIndexRepos
 	moduleIndexAddresses = []string{server.URL + "/index.json"}
-	t.Cleanup(func() { moduleIndexAddresses = addresses })
+	moduleIndexCommunityAddresses = nil
+	moduleIndexRepos = nil
+	t.Cleanup(func() {
+		moduleIndexAddresses = addresses
+		moduleIndexCommunityAddresses = community
+		moduleIndexRepos = repos
+	})
 
 	engine := &nativeEngine{downloader: &Downloader{cfg: Config{dataDir: t.TempDir()}, client: server.Client()}, cacheDirectory: t.TempDir()}
 	d := engine.downloader

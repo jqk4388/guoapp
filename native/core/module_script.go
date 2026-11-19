@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,6 +53,7 @@ type jsFetchRequest struct {
 	URL             string            `json:"url"`
 	Headers         map[string]string `json:"headers"`
 	Body            string            `json:"body"`
+	BodyBase64      string            `json:"bodyBase64"`
 	TimeoutMS       int64             `json:"timeoutMs"`
 	Limit           int64             `json:"limit"`
 	FollowRedirects bool              `json:"followRedirects"`
@@ -456,6 +458,17 @@ func moduleBody(body string) []byte {
 	return []byte(body)
 }
 
+func moduleRequestBody(request jsFetchRequest) []byte {
+	if request.BodyBase64 == "" {
+		return moduleBody(request.Body)
+	}
+	data, err := base64.StdEncoding.DecodeString(request.BodyBase64)
+	if err != nil {
+		return moduleBody(request.Body)
+	}
+	return data
+}
+
 func parseModuleURL(raw string) (jsURL, error) {
 	address, err := url.Parse(raw)
 	if err != nil {
@@ -506,7 +519,7 @@ func (p *jsProvider) fetch(ctx context.Context, request jsFetchRequest) (jsFetch
 	}
 	response, err := p.host.Fetch(ctx, HTTPRequest{
 		Label: p.module.manifest.Name, Method: request.Method, URL: request.URL, Header: request.Headers,
-		Body: moduleBody(request.Body), Timeout: time.Duration(request.TimeoutMS) * time.Millisecond, Limit: request.Limit,
+		Body: moduleRequestBody(request), Timeout: time.Duration(request.TimeoutMS) * time.Millisecond, Limit: request.Limit,
 		FollowRedirects: request.FollowRedirects, AnyStatus: request.AnyStatus, AcceptJSONStatus: request.AcceptStatus, Ticket: request.Ticket,
 		Direct: request.Direct,
 	})
